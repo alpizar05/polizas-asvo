@@ -13,7 +13,7 @@ export function validate(data: Record<string, unknown>, today = new Date()) {
  if(!/^\d{4}-\d{2}-\d{2}$/.test(result.birthDate) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0,10) !== result.birthDate || date > today || date.getUTCFullYear() < 1900) throw Error('Fecha de nacimiento inválida.');
  const year = Number(result.memberSince);
  if(!/^\d{4}$/.test(result.memberSince) || year < 1989 || year > today.getUTCFullYear() || year < date.getUTCFullYear()) throw Error('Revisá el año de ingreso a ASVO.');
- if(!['9000','18000'].includes(result.policy2026)) throw Error('Seleccioná una póliza válida.');
+ if(!['9000','18000'].includes(result.selectedPolicy)) throw Error('Seleccioná una póliza válida.');
  if(data.consent !== 'yes') throw Error('Debés autorizar el tratamiento de los datos.');
  result.email = result.email.toLowerCase();
  return result;

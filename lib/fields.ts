@@ -25,11 +25,6 @@ export const fields = [
     "type": "text"
   },
   {
-    "name": "policy",
-    "label": "Póliza (número o referencia)",
-    "type": "text"
-  },
-  {
     "name": "birthDate",
     "label": "Fecha de nacimiento (día/mes/año)",
     "type": "date"
@@ -50,31 +45,6 @@ export const fields = [
     "type": "textarea"
   },
   {
-    "name": "activeVolunteer",
-    "label": "¿Es voluntario activo?",
-    "type": "yesno"
-  },
-  {
-    "name": "memberSince",
-    "label": "Año desde que es miembro voluntario de ASVO",
-    "type": "number"
-  },
-  {
-    "name": "policy2026",
-    "label": "Tipo de póliza 2026",
-    "type": "policy"
-  },
-  {
-    "name": "policy2025",
-    "label": "Tipo de póliza 2025",
-    "type": "text"
-  },
-  {
-    "name": "method",
-    "label": "Método de pago",
-    "type": "text"
-  },
-  {
     "name": "medicalCondition",
     "label": "¿Tiene alguna condición médica que debamos conocer?",
     "type": "textarea"
@@ -92,6 +62,31 @@ export const fields = [
   {
     "name": "relationship",
     "label": "Parentesco",
+    "type": "text"
+  },
+  {
+    "name": "activeVolunteer",
+    "label": "¿Es voluntario activo?",
+    "type": "yesno"
+  },
+  {
+    "name": "memberSince",
+    "label": "Año desde que es miembro voluntario de ASVO",
+    "type": "number"
+  },
+  {
+    "name": "selectedPolicy",
+    "label": "Tipo de póliza a pagar",
+    "type": "policy"
+  },
+  {
+    "name": "method",
+    "label": "Método de pago",
+    "type": "text"
+  },
+  {
+    "name": "reference",
+    "label": "Número de referencia del pago",
     "type": "text"
   }
 ] as const;

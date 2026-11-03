@@ -2,7 +2,7 @@
  * Propiedades: BACKEND_SHARED_SECRET, SPREADSHEET_ID, DRIVE_FOLDER_ID, ADMIN_EMAIL.
  * Aplicación web: ejecutar como propietario; acceso cualquiera. Se autentica con secreto del servidor.
  */
-const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "policy", "birthDate", "address", "activeVolunteer", "memberSince", "policy2026", "policy2025", "medicalCondition", "emergencyName", "emergencyPhone", "relationship"];
+const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy"];
 const ADMIN_HEADERS = ['email','role','active'];
 function prop_(key) {
   const v = PropertiesService.getScriptProperties().getProperty(key);
@@ -28,7 +28,26 @@ function sheet_(name, headers) {
 }
 
 function registrations_() {
-  return sheet_('Renovaciones2026', HEADERS);
+  const ss = ss_();
+  let sh = ss.getSheetByName('Renovaciones');
+  if (!sh) {
+    sh = ss.getSheets().find(s => /^Renovaciones/.test(s.getName()));
+    if (sh) sh.setName('Renovaciones');
+  }
+  if (!sh) return sheet_('Renovaciones', HEADERS);
+  const values = sh.getDataRange().getValues();
+  const existing = values[0].map(String);
+  for (const header of HEADERS) {
+    if (existing.includes(header)) continue;
+    const column = existing.length + 1;
+    sh.getRange(1, column).setValue(header);
+    if (header === 'selectedPolicy' && values.length > 1) {
+      const legacy = existing.map((h,i) => /^policy\d{4}$/.test(h) ? i : -1).filter(i => i >= 0);
+      sh.getRange(2, column, values.length - 1, 1).setValues(values.slice(1).map(row => [legacy.map(i => row[i]).find(v => ['9000','18000'].includes(String(v))) || '']));
+    }
+    existing.push(header);
+  }
+  return sh;
 }
 
 function admins_() {
@@ -129,19 +148,20 @@ function safe_(value) {
 }
 function register_(d) {
  if(!d || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || '')) throw Error('Datos incompletos');
- const required = ["identification", "firstName", "firstSurname", "secondSurname", "gender", "policy", "birthDate", "phone", "email", "address", "activeVolunteer", "memberSince", "policy2026", "policy2025", "method", "medicalCondition", "emergencyName", "emergencyPhone", "relationship"];
+ const required = ["identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "phone", "email", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "method", "reference"];
  required.forEach(key => {if(typeof d[key] !== 'string' || !d[key].trim() || d[key].length > 1000) throw Error('Datos incompletos');});
- if(!['9000','18000'].includes(d.policy2026)) throw Error('Póliza inválida');
+ if(!['9000','18000'].includes(d.selectedPolicy)) throw Error('Póliza inválida');
  if(!['Sí','No'].includes(d.activeVolunteer)) throw Error('Datos inválidos');
  const lock=LockService.getScriptLock(); lock.waitLock(20000);
  try {
   const sh=registrations_();
   if(rows_(sh).some(x=>String(x.record.identification)===safe_(d.identification))) throw Error('Ya existe una solicitud con esta identificación. Contactá a Coordinación.');
-  const id='POL26-'+Utilities.getUuid().slice(0,12).toUpperCase();
+  const id='POL-'+Utilities.getUuid().slice(0,12).toUpperCase();
   const now=new Date().toISOString();
   const fileId=upload_(d.receipt,id);
-  const record={...d,id,date:now,name:[d.firstName,d.firstSurname,d.secondSurname==='No aplica'?'':d.secondSurname].filter(Boolean).join(' '),reference:'',status:'PENDING',receiptId:fileId,reason:'',updatedAt:now,reuploadToken:''};
-  sh.appendRow(HEADERS.map(key=>safe_(record[key])));
+  const record={...d,id,date:now,name:[d.firstName,d.firstSurname,d.secondSurname==='No aplica'?'':d.secondSurname].filter(Boolean).join(' '),status:'PENDING',receiptId:fileId,reason:'',updatedAt:now,reuploadToken:''};
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  sh.appendRow(headers.map(key=>safe_(record[key])));
   return {id};
  } finally {lock.releaseLock();}
 }

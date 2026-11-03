@@ -139,7 +139,7 @@ function Panel() {
           ['Inscripciones', rows.length],
           ['Pendientes', rows.filter((r) => r.status === 'PENDING').length],
           ['Confirmadas', approved],
-          ['Recaudación verificada', '₡'+rows.filter(r=>r.status==='APPROVED').reduce((sum,r)=>sum+Number(r.policy2026 || 0),0).toLocaleString('es-CR')],
+          ['Recaudación verificada', '₡'+rows.filter(r=>r.status==='APPROVED').reduce((sum,r)=>sum+Number(r.selectedPolicy || 0),0).toLocaleString('es-CR')],
         ].map(([label, val]) => (
           <div key={label}>
             <strong>{val}</strong>
@@ -210,7 +210,7 @@ function Panel() {
                   </td>
                   <td>
                     {r.method}
-                    <small>Póliza 2026: ₡{Number(r.policy2026).toLocaleString("es-CR")}</small>
+                    <small>Referencia: {r.reference || 'Sin referencia'}</small><small>Póliza a pagar: ₡{Number(r.selectedPolicy).toLocaleString("es-CR")}</small>
                   </td>
                   <td>
                     <span className={'badge ' + r.status}>
