@@ -204,8 +204,9 @@ function Panel() {
         </div>
         <div className="filter-results"><p ref={resultsRef} tabIndex={-1} role="status" aria-live="polite">Mostrando <strong>{visible.length?pageStart+1:0}–{Math.min(pageStart+pageSize,visible.length)}</strong> de {visible.length} resultados · {rows.length} solicitudes en total</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
 
-        <div className='scroll' role='region' aria-labelledby='requests-title' tabIndex={0}>
-          <table><caption className="sr-only">Solicitudes de renovación que coinciden con los filtros seleccionados</caption>
+        <p className="table-scroll-hint" id="requests-scroll-help">Si la tabla no cabe en la pantalla, deslizá horizontalmente para ver todas las columnas.</p>
+        <div className='scroll' role='region' aria-labelledby='requests-title' aria-describedby='requests-scroll-help' tabIndex={0}>
+          <table className="requests-table"><caption className="sr-only">Solicitudes de renovación que coinciden con los filtros seleccionados</caption>
             <thead>
               <tr>
                 <th scope="col">Persona voluntaria</th>

@@ -184,3 +184,17 @@ body{background:#fefefe;color:#080907}
 .badge.APPROVED{background:#f3f5ef;color:#080907;border-color:#658048}
 
 .guide .guide-sticky>p.renewal-deadline{display:block;margin:1.25rem 0 0;padding:.75rem 1rem;border-left:4px solid var(--moss);background:var(--brand-mist);color:var(--forest);font-size:1rem;line-height:1.6;max-width:100%}
+
+/* La tabla conserva columnas legibles en pantallas angostas. */
+.requests-table{min-width:74rem;table-layout:fixed}
+.requests-table th:nth-child(1){width:16rem}
+.requests-table th:nth-child(2){width:12rem}
+.requests-table th:nth-child(3){width:17rem}
+.requests-table th:nth-child(4){width:17rem}
+.requests-table th:nth-child(5){width:12rem}
+.requests-table th{overflow-wrap:normal;word-break:normal}
+.requests-table td{word-break:normal}
+.requests-table .badge{white-space:nowrap;overflow-wrap:normal}
+.requests-table details{min-width:0}
+.table-scroll-hint{font-size:.875rem;line-height:1.6;color:var(--muted);margin:.75rem 0}
+.admin .panel,.admin .scroll{min-width:0}
