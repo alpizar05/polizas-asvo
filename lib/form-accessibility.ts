@@ -2,6 +2,7 @@ export function validationMessage(validity:ValidityState,type:string,customMessa
  if(validity.customError&&customMessage)return customMessage;
  if(validity.valueMissing)return type==='checkbox'?'Marcá esta autorización para continuar.':type==='file'?'Seleccioná un comprobante de pago.':'Completá este campo.';
  if(validity.typeMismatch)return type==='email'?'Ingresá un correo electrónico válido.':'Revisá el formato de este campo.';
+ if(validity.patternMismatch)return type==='email'?'Ingresá un correo electrónico válido, por ejemplo nombre@dominio.com.':'Revisá el formato de este campo.';
  if(validity.rangeUnderflow||validity.rangeOverflow)return 'Ingresá un valor dentro del rango indicado.';
  if(validity.badInput||validity.stepMismatch)return 'Ingresá un valor válido para este campo.';
  if(validity.tooLong||validity.tooShort)return 'Revisá la cantidad de caracteres de este campo.';

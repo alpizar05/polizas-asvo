@@ -20,11 +20,6 @@ export const fields = [
     "type": "text"
   },
   {
-    "name": "gender",
-    "label": "Género",
-    "type": "text"
-  },
-  {
     "name": "birthDate",
     "label": "Fecha de nacimiento (día/mes/año)",
     "type": "date"
@@ -61,7 +56,7 @@ export const fields = [
   },
   {
     "name": "emergencyName",
-    "label": "Contacto de emergencia",
+    "label": "Nombre del contacto de emergencia",
     "type": "text"
   },
   {
