@@ -216,7 +216,7 @@ function Panel() {
                     </small>
                   </td>
                   <td>
-                    {r.method}
+                    <span className="payment-method">{r.method}</span>
                     <small>Referencia: {r.reference || 'Sin referencia'}</small><small>Póliza a pagar: ₡{Number(r.selectedPolicy).toLocaleString("es-CR")}</small>
                   </td>
                   <td>
@@ -238,20 +238,20 @@ function Panel() {
                     <ReviewHistory id={r.id} value={r.reviewHistory}/>
                     <details><summary>Ver datos de la solicitud</summary>{fields.map(f=><p key={f.name}><b>{f.label}:</b> {r[f.name]}</p>)}</details>
                   </td>
-                  <td>
-                    <button className="send-status-link" onClick={async()=>{if(!confirm('¿Enviar un nuevo enlace de consulta al correo de esta solicitud? El enlace anterior quedará invalidado.'))return;try{await call('sendStatusLink',{id:r.id});await load();}catch(error){alert(String(error));}}}>Enviar enlace de consulta</button>
-                    {r.status === 'PENDING' ? (
-                      <>
-                        <button aria-label={'Aprobar pago de '+r.name} onClick={() => review(r.id, 'APPROVED')}>
-                          ✓ Aprobar
-                        </button>{' '}
-                        <button aria-label={'Rechazar comprobante de '+r.name} onClick={() => review(r.id, 'REJECTED')}>
-                          ✕ Rechazar
-                        </button>
-                      </>
-                    ) : (
-                      r.status==='REJECTED'?<button onClick={async()=>{if(!confirm('¿Enviar otro correo con un enlace nuevo? El enlace anterior quedará invalidado.'))return;try{await call('resendRejection',{id:r.id});await load();}catch(error){alert(String(error));}}}>Reenviar enlace</button>:'Revisado'
-                    )}
+                  <td className="request-actions-cell">
+                    <div className="request-actions" role="group" aria-label={'Acciones para '+r.name}>
+                      {r.status === 'PENDING' && <div className="review-actions">
+                        <button className="approve-action" aria-label={'Aprobar pago de '+r.name} onClick={() => review(r.id, 'APPROVED')}>✓ Aprobar</button>
+                        <button className="reject-action" aria-label={'Rechazar comprobante de '+r.name} onClick={() => review(r.id, 'REJECTED')}>✕ Rechazar</button>
+                      </div>}
+                      <details className="request-more-actions">
+                        <summary>Más acciones</summary>
+                        <div className="request-secondary-actions">
+                          <button aria-label={'Enviar enlace de consulta a '+r.name} onClick={async()=>{if(!confirm('¿Enviar un nuevo enlace de consulta al correo de esta solicitud? El enlace anterior quedará invalidado.'))return;try{await call('sendStatusLink',{id:r.id});await load();}catch(error){alert(String(error));}}}>Enviar enlace de consulta</button>
+                          {r.status==='REJECTED'&&<button aria-label={'Reenviar enlace para corregir comprobante a '+r.name} onClick={async()=>{if(!confirm('¿Enviar otro correo con un enlace nuevo? El enlace anterior quedará invalidado.'))return;try{await call('resendRejection',{id:r.id});await load();}catch(error){alert(String(error));}}}>Reenviar enlace de corrección</button>}
+                        </div>
+                      </details>
+                    </div>
                   </td>
                 </tr>
               ))}
