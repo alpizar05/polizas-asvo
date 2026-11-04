@@ -40,9 +40,19 @@ export const fields = [
     "type": "email"
   },
   {
-    "name": "address",
-    "label": "Dirección exacta",
-    "type": "textarea"
+    "name": "province",
+    "label": "Provincia",
+    "type": "province"
+  },
+  {
+    "name": "canton",
+    "label": "Cantón",
+    "type": "text"
+  },
+  {
+    "name": "district",
+    "label": "Distrito",
+    "type": "text"
   },
   {
     "name": "medicalCondition",
@@ -90,3 +100,5 @@ export const fields = [
     "type": "text"
   }
 ] as const;
+
+export const provinces=['San José','Alajuela','Cartago','Heredia','Guanacaste','Puntarenas','Limón'] as const;

@@ -171,8 +171,8 @@ function Panel() {
           <button
             onClick={() => {
               const data = [
-                ['Código', 'Fecha', 'Estado', 'Motivo', ...fields.map(f=>f.label)],
-                ...visible.map(r=>[r.id,r.date,r.status,r.reason,...fields.map(f=>r[f.name])]),
+                ['Código', 'Fecha', 'Estado', 'Motivo', 'Dirección anterior', ...fields.map(f=>f.label)],
+                ...visible.map(r=>[r.id,r.date,r.status,r.reason,r.province?'':r.address,...fields.map(f=>r[f.name])]),
               ]
                 .map((a) =>
                   a
@@ -250,7 +250,7 @@ function Panel() {
                   <td>
                     <a target="_blank" rel="noopener noreferrer" href={'/api/receipt/'+encodeURIComponent(r.id)}>Ver comprobante ↗</a>
                     <ReviewHistory id={r.id} value={r.reviewHistory}/>
-                    <details><summary>Ver datos de la solicitud</summary>{fields.map(f=><p key={f.name}><b>{f.label}:</b> {r[f.name]}</p>)}</details>
+                    <details><summary>Ver datos de la solicitud</summary>{r.address&&!r.province&&<p><b>Dirección anterior:</b> {r.address}</p>}{fields.map(f=><p key={f.name}><b>{f.label}:</b> {r[f.name]}</p>)}</details>
                   </td>
                   <td className="request-actions-cell">
                     <div className="request-actions" role="group" aria-label={'Acciones para '+r.name}>

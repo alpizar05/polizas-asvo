@@ -2,7 +2,7 @@
  * Propiedades: BACKEND_SHARED_SECRET, SPREADSHEET_ID, DRIVE_FOLDER_ID, PUBLIC_SITE_URL, ADMIN_EMAIL.
  * Aplicación web: ejecutar como propietario; acceso cualquiera. Se autentica con secreto del servidor.
  */
-const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "receivedEmailStatus", "receivedEmailSentAt", "paymentEmailStatus", "paymentEmailSentAt", "rejectionEmailStatus", "rejectionEmailSentAt", "reuploadEmailStatus", "reuploadEmailSentAt", "reuploadExpiresAt", "receiptHistory", "reviewHistory", "statusLinkSeed", "statusLinkExpiresAt", "statusEmailStatus", "statusEmailSentAt"];
+const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "receivedEmailStatus", "receivedEmailSentAt", "paymentEmailStatus", "paymentEmailSentAt", "rejectionEmailStatus", "rejectionEmailSentAt", "reuploadEmailStatus", "reuploadEmailSentAt", "reuploadExpiresAt", "receiptHistory", "reviewHistory", "statusLinkSeed", "statusLinkExpiresAt", "statusEmailStatus", "statusEmailSentAt", "province", "canton", "district"];
 const ADMIN_HEADERS = ['email','role','active'];
 function prop_(key) {
   const v = PropertiesService.getScriptProperties().getProperty(key);
@@ -191,6 +191,11 @@ function assertReferenceAvailable_(reference,excludeId) {
 
 function register_(d) {
  if(!d || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || '')) throw Error('Datos incompletos');
+ if(['province','canton','district'].some(key=>d[key]!==undefined)) {
+  if(!['San José','Alajuela','Cartago','Heredia','Guanacaste','Puntarenas','Limón'].includes(d.province)) throw Error('Provincia inválida');
+  ['canton','district'].forEach(key=>{if(typeof d[key]!=='string'||!d[key].trim()||d[key].length>180) throw Error('Dirección incompleta');});
+  d.address=[d.province,d.canton.trim(),d.district.trim()].join(', ');
+ }
  const required = ["identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "phone", "email", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "method", "reference"];
  required.forEach(key => {if(typeof d[key] !== 'string' || !d[key].trim() || d[key].length > 1000) throw Error('Datos incompletos');});
  if(!['9000','18000'].includes(d.selectedPolicy)) throw Error('Póliza inválida');

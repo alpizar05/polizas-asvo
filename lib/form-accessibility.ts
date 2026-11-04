@@ -15,4 +15,4 @@ export function formErrors(form:HTMLFormElement){
  }
  return errors;
 }
-export const formFieldHelp:Record<string,string>={secondSurname:'Si no tenés segundo apellido, escribí “No aplica”.',medicalCondition:'Si no tenés condiciones que informar, escribí “No aplica”.',reference:'Copiá el número de referencia que aparece en el comprobante.',memberSince:'Ingresá los cuatro dígitos del año en que comenzaste como persona voluntaria de ASVO.'};
+export const formFieldHelp:Record<string,string>={medicalCondition:'Si no tenés condiciones que informar, escribí “No aplica”.',reference:'Copiá el número de referencia que aparece en el comprobante.',memberSince:'Ingresá los cuatro dígitos del año en que comenzaste como persona voluntaria de ASVO.'};
