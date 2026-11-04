@@ -32,6 +32,11 @@ function Panel() {
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
   const [filters,setFilters]=useState(emptyAdminFilters);
+  const [page,setPage]=useState(1);
+  const [pageSize,setPageSize]=useState(10);
+  useEffect(()=>{setPage(1);},[filters,pageSize]);
+  useEffect(()=>{setPage(previous=>Math.min(previous,Math.max(1,Math.ceil(filterAdminRows(rows,filters).length/pageSize))));},[rows,filters,pageSize]);
+
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('REVIEWER');
 
@@ -114,6 +119,15 @@ function Panel() {
   }
 
   const visible=filterAdminRows(rows,filters);
+  const pageCount=Math.max(1,Math.ceil(visible.length/pageSize));
+  const currentPage=Math.min(page,pageCount);
+  const pageStart=(currentPage-1)*pageSize;
+  const pageRows=visible.slice(pageStart,pageStart+pageSize);
+  function changePage(next:number){
+    setPage(Math.max(1,Math.min(next,pageCount)));
+    requestAnimationFrame(()=>resultsRef.current?.focus());
+  }
+
   const hasFilters=Object.values(filters).some(value=>value.trim());
   const methods=paymentMethodOptions(rows);
   const policies=policyOptions(rows);
@@ -188,7 +202,7 @@ function Panel() {
           <label>Póliza<select value={filters.policy} onChange={event=>setFilters(previous=>({...previous,policy:event.target.value}))}><option value="">Todas las pólizas</option>{policies.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <label>Método de pago<select value={filters.method} onChange={event=>setFilters(previous=>({...previous,method:event.target.value}))}><option value="">Todos los métodos</option>{methods.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         </div>
-        <div className="filter-results"><p ref={resultsRef} tabIndex={-1} role="status" aria-live="polite">Mostrando <strong>{visible.length}</strong> de {rows.length} solicitudes</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
+        <div className="filter-results"><p ref={resultsRef} tabIndex={-1} role="status" aria-live="polite">Mostrando <strong>{visible.length?pageStart+1:0}–{Math.min(pageStart+pageSize,visible.length)}</strong> de {visible.length} resultados · {rows.length} solicitudes en total</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
 
         <div className='scroll' role='region' aria-labelledby='requests-title' tabIndex={0}>
           <table><caption className="sr-only">Solicitudes de renovación que coinciden con los filtros seleccionados</caption>
@@ -203,7 +217,7 @@ function Panel() {
             </thead>
             <tbody>
               {!visible.length&&<tr><td colSpan={5} className="empty-results">{rows.length?'No hay solicitudes que coincidan con estos filtros.':'Todavía no hay solicitudes registradas.'}</td></tr>}
-              {visible.map((r) => (
+              {pageRows.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <b>{r.name}</b>
@@ -258,6 +272,16 @@ function Panel() {
             </tbody>
           </table>
         </div>
+        <nav className="admin-pagination" aria-label="Paginación de solicitudes">
+          <label>Solicitudes por página<select value={pageSize} onChange={event=>setPageSize(Number(event.target.value))}>{[10,25,50].map(size=><option key={size} value={size}>{size}</option>)}</select></label>
+          <span role="status">Página {currentPage} de {pageCount}</span>
+          <div className="pagination-buttons">
+            <button type="button" disabled={currentPage===1} onClick={()=>changePage(1)} aria-label="Primera página de solicitudes">Primera</button>
+            <button type="button" disabled={currentPage===1} onClick={()=>changePage(currentPage-1)}>Anterior</button>
+            <button type="button" disabled={currentPage===pageCount} onClick={()=>changePage(currentPage+1)}>Siguiente</button>
+            <button type="button" disabled={currentPage===pageCount} onClick={()=>changePage(pageCount)} aria-label="Última página de solicitudes">Última</button>
+          </div>
+        </nav>
       </div>
 
       {role === 'ADMIN' && (
