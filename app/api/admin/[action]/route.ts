@@ -1,9 +1,10 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getServerSession} from "next-auth";
 import {authOptions} from "@/lib/auth";
+import {paymentError} from '@/lib/payment-errors';
 import {backend} from "@/lib/backend";
 export const runtime="nodejs";
-const actions=["overview","review","admins","addAdmin","removeAdmin"];
+const actions=["overview","review","admins","addAdmin","removeAdmin","resendRejection"];
 export async function POST(req:NextRequest,{params}:{params:{action:string}}){
  const session=await getServerSession(authOptions);
  const email=session?.user?.email?.toLowerCase();
@@ -13,5 +14,5 @@ export async function POST(req:NextRequest,{params}:{params:{action:string}}){
   const data=await req.json().catch(()=>({}));
   const result=await backend(params.action,{email,data});
   return NextResponse.json(result);
- }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Error de servidor"},{status:403});}
+ }catch(e){const payment=paymentError(e);if(payment)return NextResponse.json({error:payment.message},{status:payment.status});return NextResponse.json({error:e instanceof Error?e.message:"Error de servidor"},{status:403});}
 }

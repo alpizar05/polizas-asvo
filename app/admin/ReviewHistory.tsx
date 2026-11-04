@@ -1,0 +1,5 @@
+import {readReviewHistory,reviewDate} from '@/lib/review-history';
+export default function ReviewHistory({id,value}:{id:string;value:unknown}){
+ const {entries,error}=readReviewHistory(value);
+ return <details className="review-history"><summary>Historial de revisiones{!error&&` (${entries.length})`}</summary>{error?<p className="error">No se pudo leer el historial. Contactá a Coordinación.</p>:entries.length?<><p className="history-timezone">Fechas en hora de Costa Rica · Más reciente primero</p><ol>{entries.map(entry=><li key={entry.id}><span className={'badge '+entry.decision}>{entry.decision==='APPROVED'?'Pago aprobado':'Comprobante rechazado'}</span><p><time dateTime={entry.reviewedAt}>{reviewDate(entry.reviewedAt)}</time><br/><b>Revisó:</b> {entry.reviewedBy}</p><p><b>Motivo / observaciones:</b> {entry.reason||'Sin observaciones registradas.'}</p><p><b>Referencia:</b> {entry.reference||'Sin referencia'}</p><a target="_blank" rel="noopener noreferrer" href={'/api/receipt/'+encodeURIComponent(id)+'?review='+encodeURIComponent(entry.id)}>Ver comprobante de esta revisión ↗</a></li>)}</ol></>:<p>No hay revisiones registradas.</p>}</details>;
+}

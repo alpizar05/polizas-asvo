@@ -1,3 +1,4 @@
+export class BackendError extends Error {constructor(message:string,public code:string=''){super(message);this.name='BackendError';}}
 export async function backend(action: string, payload: Record<string,unknown> = {}) {
  const endpoint=process.env.APPS_SCRIPT_URL;
  const secret=process.env.BACKEND_SHARED_SECRET;
@@ -12,7 +13,7 @@ export async function backend(action: string, payload: Record<string,unknown> = 
   });
   if(!response.ok) throw new Error("Error de conexión con backend");
   const result=await response.json();
-  if(!result.ok) throw new Error(result.error || "Operación rechazada");
+  if(!result.ok) throw new BackendError(result.error || "Operación rechazada",result.code || "");
   return result;
  } finally {clearTimeout(timer);}
 }

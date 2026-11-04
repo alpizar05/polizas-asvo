@@ -1,6 +1,8 @@
 'use client';
 
+import ReviewHistory from './ReviewHistory';
 import {fields} from '@/lib/fields';
+import {emptyAdminFilters,filterAdminRows,paymentMethodOptions,policyOptions} from '@/lib/admin-filters';
 import { useEffect, useState } from 'react';
 import { SessionProvider, useSession, signIn, signOut } from 'next-auth/react';
 
@@ -28,7 +30,7 @@ function Panel() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('');
+  const [filters,setFilters]=useState(emptyAdminFilters);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('REVIEWER');
 
@@ -65,9 +67,9 @@ function Panel() {
   }, [status]);
 
   async function review(id: string, decision: string) {
-    const reason = decision === 'REJECTED' ? prompt('Motivo del rechazo:') : '';
-
-    if (decision === 'REJECTED' && !reason?.trim()) return;
+    const reason=prompt(decision==='REJECTED'?'Motivo del rechazo (obligatorio):':'Motivo u observaciones de aprobación (opcional):');
+    if(reason===null)return;
+    if(decision==='REJECTED'&&!reason.trim())return;
     if (!confirm('¿Confirmar esta acción?')) return;
 
     try {
@@ -109,12 +111,10 @@ function Panel() {
     );
   }
 
-  const visible = rows.filter((r) =>
-    [r.name, r.email, r.status, r.id]
-      .join(' ')
-      .toLowerCase()
-      .includes(filter.toLowerCase()),
-  );
+  const visible=filterAdminRows(rows,filters);
+  const hasFilters=Object.values(filters).some(value=>value.trim());
+  const methods=paymentMethodOptions(rows);
+  const policies=policyOptions(rows);
   const approved = rows.filter((r) => r.status === 'APPROVED').length;
 
   return (
@@ -134,6 +134,7 @@ function Panel() {
 
       {error && <p className='error'>{error}</p>}
 
+      <p className='admin-summary-note'>Resumen general · todas las solicitudes</p>
       <div className='stats'>
         {[
           ['Inscripciones', rows.length],
@@ -151,11 +152,6 @@ function Panel() {
       <div className='panel'>
         <div className='admin-head'>
           <h2>Solicitudes de renovación</h2>
-          <input
-            placeholder='Buscar…'
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
           <button
             onClick={() => {
               const data = [
@@ -180,9 +176,17 @@ function Panel() {
               URL.revokeObjectURL(url);
             }}
           >
-            Exportar CSV
+            Exportar resultados CSV
           </button>
         </div>
+
+        <div className="admin-filters" role="search" aria-label="Filtrar solicitudes">
+          <label className="admin-search">Buscar solicitud<input type="search" placeholder="Nombre, correo, identificación, referencia…" value={filters.search} onChange={event=>setFilters(previous=>({...previous,search:event.target.value}))}/></label>
+          <label>Estado<select value={filters.status} onChange={event=>setFilters(previous=>({...previous,status:event.target.value}))}><option value="">Todos los estados</option><option value="PENDING">Pendiente</option><option value="APPROVED">Confirmado</option><option value="REJECTED">Rechazado</option></select></label>
+          <label>Póliza<select value={filters.policy} onChange={event=>setFilters(previous=>({...previous,policy:event.target.value}))}><option value="">Todas las pólizas</option>{policies.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label>Método de pago<select value={filters.method} onChange={event=>setFilters(previous=>({...previous,method:event.target.value}))}><option value="">Todos los métodos</option>{methods.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        </div>
+        <div className="filter-results"><p role="status" aria-live="polite">Mostrando <strong>{visible.length}</strong> de {rows.length} solicitudes</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
 
         <div className='scroll'>
           <table>
@@ -196,6 +200,7 @@ function Panel() {
               </tr>
             </thead>
             <tbody>
+              {!visible.length&&<tr><td colSpan={5} className="empty-results">{rows.length?'No hay solicitudes que coincidan con estos filtros.':'Todavía no hay solicitudes registradas.'}</td></tr>}
               {visible.map((r) => (
                 <tr key={r.id}>
                   <td>
@@ -221,9 +226,14 @@ function Panel() {
                           : 'Rechazado'}
                     </span>
                     <small>{r.reason}</small>
+                    <small>Correo de recepción: {r.receivedEmailStatus==='SENT'?'Enviado':r.receivedEmailStatus==='ERROR'?'No enviado; revisar Apps Script':r.receivedEmailStatus==='PENDING'?'Pendiente':'Sin registro'}</small>
+                    {r.status==='REJECTED'&&<small>Correo de rechazo: {r.rejectionEmailStatus==='SENT'?'Enviado':r.rejectionEmailStatus==='ERROR'?'No enviado; reenviar enlace':'Sin registro'}</small>}
+                    {r.reuploadEmailStatus&&<small>Correo de nuevo comprobante: {r.reuploadEmailStatus==='SENT'?'Enviado':'No enviado'}</small>}
+                    {r.status==='APPROVED'&&<small>Correo de aprobación: {r.paymentEmailStatus==='SENT'?'Enviado':r.paymentEmailStatus==='ERROR'?'No enviado; revisar Apps Script':'Sin registro'}</small>}
                   </td>
                   <td>
                     <a target="_blank" rel="noopener noreferrer" href={'/api/receipt/'+encodeURIComponent(r.id)}>Ver comprobante ↗</a>
+                    <ReviewHistory id={r.id} value={r.reviewHistory}/>
                     <details><summary>Ver datos de la solicitud</summary>{fields.map(f=><p key={f.name}><b>{f.label}:</b> {r[f.name]}</p>)}</details>
                   </td>
                   <td>
@@ -237,7 +247,7 @@ function Panel() {
                         </button>
                       </>
                     ) : (
-                      'Revisado'
+                      r.status==='REJECTED'?<button onClick={async()=>{if(!confirm('¿Enviar otro correo con un enlace nuevo? El enlace anterior quedará invalidado.'))return;try{await call('resendRejection',{id:r.id});await load();}catch(error){alert(String(error));}}}>Reenviar enlace</button>:'Revisado'
                     )}
                   </td>
                 </tr>
