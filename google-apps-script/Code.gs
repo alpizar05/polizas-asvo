@@ -1,8 +1,8 @@
 /** Renovación de pólizas ASVO. Usar un proyecto y una hoja NUEVOS, separados de Fiesta.
- * Propiedades: BACKEND_SHARED_SECRET, SPREADSHEET_ID, DRIVE_FOLDER_ID, ADMIN_EMAIL.
+ * Propiedades: BACKEND_SHARED_SECRET, SPREADSHEET_ID, DRIVE_FOLDER_ID, PUBLIC_SITE_URL, ADMIN_EMAIL.
  * Aplicación web: ejecutar como propietario; acceso cualquiera. Se autentica con secreto del servidor.
  */
-const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "receivedEmailStatus", "receivedEmailSentAt", "paymentEmailStatus", "paymentEmailSentAt", "rejectionEmailStatus", "rejectionEmailSentAt", "reuploadEmailStatus", "reuploadEmailSentAt", "reuploadExpiresAt", "receiptHistory", "reviewHistory"];
+const HEADERS = ["id", "date", "name", "email", "phone", "method", "reference", "status", "receiptId", "reason", "updatedAt", "reuploadToken", "identification", "firstName", "firstSurname", "secondSurname", "gender", "birthDate", "address", "medicalCondition", "emergencyName", "emergencyPhone", "relationship", "activeVolunteer", "memberSince", "selectedPolicy", "receivedEmailStatus", "receivedEmailSentAt", "paymentEmailStatus", "paymentEmailSentAt", "rejectionEmailStatus", "rejectionEmailSentAt", "reuploadEmailStatus", "reuploadEmailSentAt", "reuploadExpiresAt", "receiptHistory", "reviewHistory", "statusLinkSeed", "statusLinkExpiresAt", "statusEmailStatus", "statusEmailSentAt"];
 const ADMIN_HEADERS = ['email','role','active'];
 function prop_(key) {
   const v = PropertiesService.getScriptProperties().getProperty(key);
@@ -100,6 +100,12 @@ function doPost(e) {
       case 'resendRejection':
         data = resendRejection_(req.email,req.data);
         break;
+      case 'requestStatus':
+        data = requestStatus_(req.id,req.token);
+        break;
+      case 'sendStatusLink':
+        data = sendStatusLink_(req.email,req.data);
+        break;
       case 'overview':
         data = overview_(req.email);
         break;
@@ -196,17 +202,19 @@ function register_(d) {
   assertReferenceAvailable_(d.reference);
   const id='POL-'+Utilities.getUuid().slice(0,12).toUpperCase();
   const now=new Date().toISOString();
+  const statusAccess=newStatusAccess_();
+  const statusUrl=statusUrl_({id,...statusAccess});
   const fileId=upload_(d.receipt,id);
-  const record={...d,id,date:now,name:[d.firstName,d.firstSurname,d.secondSurname==='No aplica'?'':d.secondSurname].filter(Boolean).join(' '),status:'PENDING',receiptId:fileId,reason:'',updatedAt:now,reuploadToken:'',receivedEmailStatus:'PENDING',receivedEmailSentAt:'',paymentEmailStatus:'',paymentEmailSentAt:''};
+  const record={...d,...statusAccess,id,date:now,name:[d.firstName,d.firstSurname,d.secondSurname==='No aplica'?'':d.secondSurname].filter(Boolean).join(' '),status:'PENDING',receiptId:fileId,reason:'',updatedAt:now,reuploadToken:'',receivedEmailStatus:'PENDING',receivedEmailSentAt:'',paymentEmailStatus:'',paymentEmailSentAt:''};
   const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
   sh.appendRow(headers.map(key=>safe_(record[key])));
   notify_(sh,sh.getLastRow(),record,'received');
-  return {id};
+  return {id,statusUrl};
  } finally {lock.releaseLock();}
 }
 function overview_(email) {
  const role=getRole_(email);
- return {role,rows:rows_(registrations_()).map(x=>{const {reuploadToken,...record}=x.record;return record;})};
+ return {role,rows:rows_(registrations_()).map(x=>{const {reuploadToken,statusLinkSeed,...record}=x.record;return record;})};
 }
 function find_(id) {
  const match=rows_(registrations_()).find(x=>x.record.id===id);
@@ -447,14 +455,15 @@ function receipt_(email, id, reviewId) {
 
 // Un fallo de correo nunca revierte un registro o una aprobación ya guardados.
 function notify_(sh,row,record,event) {
-  const prefix={received:'receivedEmail',payment:'paymentEmail',rejected:'rejectionEmail',reuploaded:'reuploadEmail'}[event];
+  const prefix={received:'receivedEmail',payment:'paymentEmail',rejected:'rejectionEmail',reuploaded:'reuploadEmail',status:'statusEmail'}[event];
   if(!prefix) throw Error('Notificación desconocida');
   if(record[prefix+'Status']==='SENT') return;
   let status='ERROR';
   let sentAt='';
   try {
     if(MailApp.getRemainingDailyQuota()<1) throw Error('Sin cuota de correo');
-    const message=notificationMessage_(record,event);
+    const statusRecord=ensureStatusAccess_(sh,row,record);
+    const message=notificationMessage_({...statusRecord,statusUrl:statusUrl_(statusRecord)},event);
     MailApp.sendEmail({...message,name:'Coordinación de Voluntariado ASVO',replyTo:prop_('ADMIN_EMAIL')});
     status='SENT';sentAt=new Date().toISOString();
   } catch(error) {
@@ -477,19 +486,73 @@ function notificationMessage_(record,event) {
     received:{title:'Recibimos tu solicitud de renovación',state:'Pendiente de revisión',detail:'Recibimos tus datos y el comprobante de pago. Coordinación revisará la información y te enviará otro correo cuando el pago sea aprobado.',note:'Este correo confirma la recepción de tu solicitud. El pago y la vigencia de la póliza aún no están confirmados.'},
     payment:{title:'Tu pago fue aprobado',state:'Pago aprobado',detail:'Coordinación revisó y aprobó el pago de tu solicitud de renovación de póliza. Gracias por seguir siendo parte del voluntariado ASVO.',note:'Esta confirmación corresponde a la revisión del pago y no sustituye la emisión ni la confirmación de vigencia de la póliza.'},
     rejected:{title:'Necesitamos un nuevo comprobante de pago',state:'Comprobante rechazado',detail:'Coordinación no pudo aprobar tu comprobante. Revisá el motivo y cargá uno nuevo desde el enlace privado que aparece a continuación, sin completar otra solicitud.',note:'El enlace es personal, de un solo uso y vence en 7 días. No lo compartás. Si vence o necesitás ayuda, respondé a este correo para solicitar otro enlace.'},
+    status:{title:'Consultá el estado de tu solicitud',state:{PENDING:'Pendiente de revisión',APPROVED:'Pago aprobado',REJECTED:'Comprobante rechazado'}[record.status] || 'En revisión',detail:'Usá el enlace privado de este correo para consultar el estado actualizado de tu solicitud cuando lo necesités.',note:'Este enlace es personal y vence en 90 días. No lo compartás. Si recibiste un enlace nuevo, el anterior dejó de funcionar.'},
     reuploaded:{title:'Recibimos tu nuevo comprobante',state:'Pendiente de revisión',detail:'Tu nuevo comprobante se guardó en la misma solicitud. Coordinación volverá a revisarlo y te avisará cuando apruebe el pago.',note:'Conservá tu código de solicitud. Este correo confirma la recepción del nuevo comprobante y no confirma el pago ni la vigencia de la póliza.'},
   };
   const {title,state,detail,note}=templates[event];
   const rejectionText=event==='rejected'?'\n\nMotivo del rechazo: '+String(record.reason)+'\n\nCargar nuevo comprobante: '+record.reuploadUrl:'';
   const rejectionHtml=event==='rejected'?'<div style="padding:18px;background:#fff3e9;border-radius:8px"><strong>Motivo del rechazo</strong><p style="white-space:pre-wrap">'+escapeHtml_(record.reason)+'</p></div><p><a style="display:inline-block;padding:14px 20px;background:#203f32;color:white;border-radius:6px" href="'+escapeHtml_(record.reuploadUrl)+'">Cargar nuevo comprobante</a></p>':'';
 
+  const statusText=record.statusUrl?'\n\nConsultar estado de mi solicitud: '+record.statusUrl+'\nEste enlace es privado. No lo compartás.':'';
+  const statusHtml=record.statusUrl?'<p><a style="display:inline-block;padding:14px 20px;background:#203f32;color:white;border-radius:6px" href="'+escapeHtml_(record.statusUrl)+'">Consultar estado de mi solicitud</a></p><p style="font-size:12px">Enlace privado. No lo compartás.</p>':'';
   const amount='₡'+Number(record.selectedPolicy).toLocaleString('es-CR');
   const name=String(record.firstName || record.name || '');
-  const body=['Hola, '+name+'.','',detail+rejectionText,'','Código de solicitud: '+record.id,'Póliza seleccionada: '+amount,'Estado: '+state,'',note,'','Guardá este código para cualquier consulta. Podés responder a este correo si necesitás ayuda.','','Coordinación de Voluntariado ASVO'].join('\n');
-  const htmlBody='<div style="font-family:Arial,sans-serif;background:#f5f7f0;padding:24px;color:#203f32"><div style="max-width:560px;margin:auto;background:white;padding:30px;border-radius:12px"><p style="font-size:22px;font-weight:bold">ASVO</p><h1 style="font-size:24px">'+escapeHtml_(title)+'</h1><p>Hola, '+escapeHtml_(name)+'.</p><p style="line-height:1.7">'+escapeHtml_(detail)+'</p>'+rejectionHtml+'<div style="padding:18px;background:#eff4e5;border-radius:8px"><p>Código de solicitud: <strong>'+escapeHtml_(record.id)+'</strong></p><p>Póliza seleccionada: <strong>'+escapeHtml_(amount)+'</strong></p><p>Estado: <strong>'+escapeHtml_(state)+'</strong></p></div><p style="font-size:12px;line-height:1.7;color:#68745f">'+escapeHtml_(note)+'</p><p style="font-size:12px">Guardá este código para cualquier consulta. Podés responder a este correo si necesitás ayuda.</p><p>Coordinación de Voluntariado ASVO</p></div></div>';
+  const body=['Hola, '+name+'.','',detail+rejectionText,'','Código de solicitud: '+record.id,'Póliza seleccionada: '+amount,'Estado: '+state+statusText,'',note,'','Guardá este código para cualquier consulta. Podés responder a este correo si necesitás ayuda.','','Coordinación de Voluntariado ASVO'].join('\n');
+  const htmlBody='<div style="font-family:Arial,sans-serif;background:#f5f7f0;padding:24px;color:#203f32"><div style="max-width:560px;margin:auto;background:white;padding:30px;border-radius:12px"><p style="font-size:22px;font-weight:bold">ASVO</p><h1 style="font-size:24px">'+escapeHtml_(title)+'</h1><p>Hola, '+escapeHtml_(name)+'.</p><p style="line-height:1.7">'+escapeHtml_(detail)+'</p>'+rejectionHtml+'<div style="padding:18px;background:#eff4e5;border-radius:8px"><p>Código de solicitud: <strong>'+escapeHtml_(record.id)+'</strong></p><p>Póliza seleccionada: <strong>'+escapeHtml_(amount)+'</strong></p><p>Estado: <strong>'+escapeHtml_(state)+'</strong></p></div>'+statusHtml+'<p style="font-size:12px;line-height:1.7;color:#68745f">'+escapeHtml_(note)+'</p><p style="font-size:12px">Guardá este código para cualquier consulta. Podés responder a este correo si necesitás ayuda.</p><p>Coordinación de Voluntariado ASVO</p></div></div>';
   return {to:String(record.email).trim().toLowerCase(),subject:title+' | ASVO',body,htmlBody};
 }
 
 function escapeHtml_(value) {
   return String(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+}
+
+
+function newStatusAccess_() {
+ return {statusLinkSeed:Utilities.getUuid(),statusLinkExpiresAt:new Date(Date.now()+90*24*60*60*1000).toISOString()};
+}
+
+function statusToken_(record) {
+ const value='ASVO:request-status:v1:'+record.id+':'+record.statusLinkSeed;
+ return Utilities.computeHmacSha256Signature(value,prop_('BACKEND_SHARED_SECRET')).map(byte=>('0'+((byte+256)%256).toString(16)).slice(-2)).join('');
+}
+
+function statusUrl_(record) {
+ return publicSiteUrl_()+'/estado/'+encodeURIComponent(record.id)+'/'+statusToken_(record);
+}
+
+function ensureStatusAccess_(sh,row,record) {
+ if(record.statusLinkSeed && Date.parse(record.statusLinkExpiresAt)>Date.now()) return record;
+ const access=newStatusAccess_();
+ patchRecord_(sh,row,access);
+ return {...record,...access};
+}
+
+function invalidStatusLink_() {
+ const error=Error('El enlace de consulta no es válido, fue reemplazado o venció. Solicitá a Coordinación que te envíe uno nuevo.');
+ error.code='STATUS_LINK_INVALID';throw error;
+}
+
+function requestStatus_(id,token) {
+ if(typeof id!=='string' || !/^POL(?:\d+)?-[A-Z0-9-]{8,50}$/i.test(id) || !/^[a-f0-9]{64}$/i.test(String(token || ''))) invalidStatusLink_();
+ const item=rows_(registrations_()).find(x=>x.record.id===id);
+ if(!item || !item.record.statusLinkSeed || !(Date.parse(item.record.statusLinkExpiresAt)>Date.now())) invalidStatusLink_();
+ const expected=statusToken_(item.record);
+ let mismatch=0;for(let i=0;i<expected.length;i++)mismatch|=expected.charCodeAt(i)^token.charCodeAt(i);
+ if(mismatch || !['PENDING','APPROVED','REJECTED'].includes(item.record.status)) invalidStatusLink_();
+ const r=item.record;
+ return {id:r.id,status:r.status,selectedPolicy:String(r.selectedPolicy),updatedAt:String(r.updatedAt),reason:r.status==='REJECTED'?String(r.reason || ''):'',expiresAt:String(r.statusLinkExpiresAt)};
+}
+
+function sendStatusLink_(email,d) {
+ getRole_(email);
+ publicSiteUrl_();
+ const lock=LockService.getScriptLock();lock.waitLock(20000);
+ try {
+  const item=find_(d && d.id);
+  const access=newStatusAccess_();
+  const sh=registrations_();
+  patchRecord_(sh,item.row,{...access,statusEmailStatus:'PENDING',statusEmailSentAt:''});
+  notify_(sh,item.row,{...item.record,...access,statusEmailStatus:'PENDING'},'status');
+  return {id:item.record.id};
+ } finally {lock.releaseLock();}
 }

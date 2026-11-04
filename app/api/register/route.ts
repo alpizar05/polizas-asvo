@@ -11,5 +11,5 @@ export async function POST(req:NextRequest){
  let data; let receipt;
  try{const form=await req.formData();if(form.get('website'))return NextResponse.json({error:'Solicitud inválida.'},{status:400});
 receipt=await readReceipt(form.get('receipt'));data=validate(Object.fromEntries(form.entries()));}catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Datos inválidos.'},{status:400});}
- try{const result=await backend('register',{data:{...data,receipt}});return NextResponse.json({ok:true,id:result.id});}catch(error){const payment=paymentError(error);if(payment)return NextResponse.json({error:payment.message},{status:payment.status});return NextResponse.json({error:'No se pudo registrar la solicitud. Contactá a Coordinación antes de reenviarla.'},{status:502});}
+ try{const result=await backend('register',{data:{...data,receipt}});return NextResponse.json({ok:true,id:result.id,statusUrl:result.statusUrl || ''});}catch(error){const payment=paymentError(error);if(payment)return NextResponse.json({error:payment.message},{status:payment.status});return NextResponse.json({error:'No se pudo registrar la solicitud. Contactá a Coordinación antes de reenviarla.'},{status:502});}
 }

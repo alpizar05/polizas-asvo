@@ -28,6 +28,7 @@ export default function Home(){
   const [copyStatus,setCopyStatus]=useState<Record<string,string>>({});
   const [status,setStatus]=useState('');
   const [code,setCode]=useState('');
+  const [statusUrl,setStatusUrl]=useState('');
   const [busy,setBusy]=useState(false);
   const [policy,setPolicy]=useState('');
   const [receipt,setReceipt]=useState<File|null>(null);
@@ -63,6 +64,7 @@ export default function Home(){
       const response=await fetch('/api/register',{method:'POST',body:new FormData(e.currentTarget)});
       const data=await response.json();
       if(!response.ok)throw Error(data.error||'No se pudo enviar la solicitud.');
+      setStatusUrl(typeof data.statusUrl==='string'?data.statusUrl:'');
       setCode(data.id);
     }catch(error){setStatus(error instanceof Error?error.message:'Error de envío.');}
     finally{setBusy(false);}
@@ -77,7 +79,7 @@ export default function Home(){
     </section>
     <div className="form-layout" id="formulario">
       <aside className="guide"><div className="guide-sticky"><span className="eyebrow">TU RENOVACIÓN</span><h2>Un paso más<br/>para seguir ayudando.</h2><p>Tené a mano tus datos y el comprobante de pago.</p><nav aria-label="Secciones del formulario"><ol>{sections.map((section,index)=><li key={section.id}><a href={'#'+section.id}><span className={'step-number'+(completed[index]?' complete':'')}>{completed[index]?<Icon name="check"/>:String(index+1).padStart(2,'0')}</span><span>{section.id==='emergencia'?'Contacto de emergencia':section.title}</span></a></li>)}</ol></nav><div className="guide-note"><Icon name="lock"/><p>Tus datos y comprobante se utilizan para gestionar tu renovación. Coordinación revisará el pago antes de confirmarlo.</p></div></div></aside>
-      <div className="form-content">{code?<div className="success-card" role="status" tabIndex={-1} ref={successRef}><span className="success-icon"><Icon name="check" width="32" height="32"/></span><span className="eyebrow">SOLICITUD RECIBIDA</span><h2>¡Gracias por seguir siendo parte!</h2><p>Recibimos tus datos y el comprobante. Tu pago está pendiente de revisión por Coordinación.</p><div className="request-code"><span>Código de tu solicitud</span><strong>{code}</strong>{copyButton('code',code,'Copiar código de solicitud')}</div><p className="muted">Guardá este código para consultar sobre tu renovación. La recepción de la solicitud no confirma la vigencia de la póliza.</p></div>:<>
+      <div className="form-content">{code?<div className="success-card" role="status" tabIndex={-1} ref={successRef}><span className="success-icon"><Icon name="check" width="32" height="32"/></span><span className="eyebrow">SOLICITUD RECIBIDA</span><h2>¡Gracias por seguir siendo parte!</h2><p>Recibimos tus datos y el comprobante. Tu pago está pendiente de revisión por Coordinación.</p><div className="request-code"><span>Código de tu solicitud</span><strong>{code}</strong>{copyButton('code',code,'Copiar código de solicitud')}</div><div className="status-link-actions">{statusUrl&&<><a className="button" href={statusUrl}>Consultar mi solicitud<Icon name="arrow"/></a>{copyButton('statusLink',statusUrl,'Copiar enlace privado de consulta')}<p className="muted">Guardá este enlace privado para consultar tu estado. No lo compartás.</p></>}</div><p className="muted">Guardá este código para consultar sobre tu renovación. La recepción de la solicitud no confirma la vigencia de la póliza.</p></div>:<>
         <div className="form-intro"><div><span className="eyebrow">FORMULARIO DE RENOVACIÓN</span><h2>Sigamos haciendo la diferencia.</h2></div><span className="required-note">* Campos obligatorios</span></div>
         <form onSubmit={send} onChange={e=>updateProgress(e.currentTarget)} aria-busy={busy}>
           {sections.map((section,index)=><fieldset className="section-card" id={section.id} key={section.id}>

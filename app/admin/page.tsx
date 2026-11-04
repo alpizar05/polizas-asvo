@@ -225,7 +225,7 @@ function Panel() {
                           ? 'Confirmado'
                           : 'Rechazado'}
                     </span>
-                    <small>{r.reason}</small>
+                    <small>{r.reason}</small><small>Enlace de consulta: {r.statusEmailStatus==='SENT'?'Correo reenviado':r.statusEmailStatus==='ERROR'?'No se pudo reenviar':'Incluido en los nuevos correos'}</small>
                     <small>Correo de recepción: {r.receivedEmailStatus==='SENT'?'Enviado':r.receivedEmailStatus==='ERROR'?'No enviado; revisar Apps Script':r.receivedEmailStatus==='PENDING'?'Pendiente':'Sin registro'}</small>
                     {r.status==='REJECTED'&&<small>Correo de rechazo: {r.rejectionEmailStatus==='SENT'?'Enviado':r.rejectionEmailStatus==='ERROR'?'No enviado; reenviar enlace':'Sin registro'}</small>}
                     {r.reuploadEmailStatus&&<small>Correo de nuevo comprobante: {r.reuploadEmailStatus==='SENT'?'Enviado':'No enviado'}</small>}
@@ -237,6 +237,7 @@ function Panel() {
                     <details><summary>Ver datos de la solicitud</summary>{fields.map(f=><p key={f.name}><b>{f.label}:</b> {r[f.name]}</p>)}</details>
                   </td>
                   <td>
+                    <button className="send-status-link" onClick={async()=>{if(!confirm('¿Enviar un nuevo enlace de consulta al correo de esta solicitud? El enlace anterior quedará invalidado.'))return;try{await call('sendStatusLink',{id:r.id});await load();}catch(error){alert(String(error));}}}>Enviar enlace de consulta</button>
                     {r.status === 'PENDING' ? (
                       <>
                         <button onClick={() => review(r.id, 'APPROVED')}>

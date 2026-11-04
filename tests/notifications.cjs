@@ -1,11 +1,11 @@
-const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const crypto=require('node:crypto');
 const source=fs.readFileSync('google-apps-script/Code.gs','utf8');
 function fixture(options={}){
  const messages=[];const status={};const logs=[];
- const context=vm.createContext({console:{error:message=>logs.push(message)},MailApp:{getRemainingDailyQuota:()=>options.quota??10,sendEmail:message=>{if(options.fail)throw Error('Mail failed');messages.push(message);}}});vm.runInContext(source,context);vm.runInContext("prop_=()=> 'coordinacion@example.com'",context);
+ const context=vm.createContext({Utilities:{computeHmacSha256Signature:(value,key)=>Array.from(crypto.createHmac('sha256',key).update(value).digest())},console:{error:message=>logs.push(message)},MailApp:{getRemainingDailyQuota:()=>options.quota??10,sendEmail:message=>{if(options.fail)throw Error('Mail failed');messages.push(message);}}});vm.runInContext(source,context);vm.runInContext("prop_=key=>key==='PUBLIC_SITE_URL'?'https://polizas.example':'coordinacion@example.com'",context);
  const headers=['receivedEmailStatus','receivedEmailSentAt','paymentEmailStatus','paymentEmailSentAt'];
  context.sheet={getLastColumn:()=>headers.length,getRange:(row,column)=>({getValues:()=>[headers],setValue:value=>status[headers[column-1]]=value})};
- context.record={id:'POL-prueba',firstName:'<script>persona</script>',email:'PERSONA@example.com',selectedPolicy:'18000',medicalCondition:'MEDICAL_PRIVATE',identification:'ID_PRIVATE',emergencyPhone:'PHONE_PRIVATE',status:'APPROVED'};
+ context.record={id:'POL-prueba',firstName:'<script>persona</script>',email:'PERSONA@example.com',selectedPolicy:'18000',medicalCondition:'MEDICAL_PRIVATE',identification:'ID_PRIVATE',emergencyPhone:'PHONE_PRIVATE',status:'APPROVED',statusLinkSeed:'fixture-seed',statusLinkExpiresAt:new Date(Date.now()+90*24*60*60*1000).toISOString()};
  return {context,messages,status,logs};
 }
 test('confirmaciones incluyen estado y código, escapan HTML y omiten datos sensibles',()=>{
