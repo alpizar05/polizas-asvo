@@ -92,3 +92,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .request-secondary-actions{margin-top:.5rem}
 .admin .request-secondary-actions button{background:#f4f6ef}
 .request-more-actions>summary:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+
+/* Etiquetas y controles del nuevo comprobante comparten dos filas automáticas. */
+.reupload-payment-fields{grid-template-columns:1fr}
+@supports(grid-template-rows:subgrid){
+ .reupload-payment-fields{row-gap:.5rem}
+ .reupload-payment-fields>label{display:grid;grid-template-rows:subgrid;grid-row:span 2;min-width:0}
+ .reupload-payment-fields>label>span{grid-row:1}
+ .reupload-payment-fields>label>input,.reupload-payment-fields>label>select{grid-row:2;margin-top:0}
+ @media(min-width:581px){.reupload-payment-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+}
