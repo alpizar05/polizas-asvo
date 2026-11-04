@@ -161,3 +161,24 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{ba
 .badge.APPROVED{background:var(--brand-mist);color:var(--forest);border:1px solid var(--moss)}
 .badge.REJECTED{background:#f6d9d3;color:#762323}
 @media(forced-colors:active){.hero-copy:before{background:Highlight}.badge.APPROVED{border-color:ButtonText}}
+
+/* Prueba local · Colores principales ASVO (lineamientos, página 1).
+   Gris y negro para lectura; musgo para identidad; amarillo para acciones. */
+:root{--forest:#080907;--deep:#080907;--leaf:#080907;--moss:#658048;--lime:#ebe544;--paper:#fefefe;--white:#fefefe;--line:#d4d8d0;--muted:#4b4e48;--brand-mist:#f3f5ef;--brand-sun:#ebe544;--brand-gray:#6f716d}
+body{background:#fefefe;color:#080907}
+.hero .eyebrow,.eyebrow{color:#4b4e48}
+.hero h1 em{color:#658048}
+.status-dot{background:#658048}
+.hero-copy:before{background:#ebe544}
+.hero-photo figcaption{background:#080907;color:#fefefe}
+.hero-photo small{color:#fefefe}
+.button:hover{background:#658048;border-color:#080907;color:#080907}
+.hero .button:hover,.submit-button:hover{background:#080907;color:#ebe544}
+.section-number,.step-number{color:#080907}
+.step-number.complete,.selected .radio-mark{background:#658048;color:#080907;border-color:#080907}
+.policy-option.selected{background:#f3f5ef;border-color:#658048;box-shadow:inset 0 0 0 1px #658048}
+.guide-note,.payment-details,.request-code,.reupload-reason{background:#f3f5ef}
+.payment-leaf,.success-icon,.upload-icon{background:#ebe544;color:#080907}
+.check input{accent-color:#080907}
+.admin .approve-action:hover{background:#ebe544;color:#080907;border-color:#080907}
+.badge.APPROVED{background:#f3f5ef;color:#080907;border-color:#658048}
