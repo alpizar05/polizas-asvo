@@ -26,7 +26,7 @@ export const fields = [
   },
   {
     "name": "phone",
-    "label": "Número telefónico",
+    "label": "Número telefónico (WhatsApp)",
     "type": "tel"
   },
   {
