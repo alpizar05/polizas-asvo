@@ -66,12 +66,12 @@ export const fields = [
   },
   {
     "name": "activeVolunteer",
-    "label": "¿Es voluntario activo?",
+    "label": "¿Es una persona voluntaria activa?",
     "type": "yesno"
   },
   {
     "name": "memberSince",
-    "label": "Año desde que es miembro voluntario de ASVO",
+    "label": "Año desde que es persona voluntaria de ASVO",
     "type": "number"
   },
   {

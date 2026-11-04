@@ -3,7 +3,7 @@
 import ReviewHistory from './ReviewHistory';
 import {fields} from '@/lib/fields';
 import {emptyAdminFilters,filterAdminRows,paymentMethodOptions,policyOptions} from '@/lib/admin-filters';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SessionProvider, useSession, signIn, signOut } from 'next-auth/react';
 
 type Row = Record<string,string> & {
@@ -27,6 +27,7 @@ type Admin = {
 function Panel() {
   const { data: session, status } = useSession();
   const [rows, setRows] = useState<Row[]>([]);
+  const resultsRef=useRef<HTMLParagraphElement>(null);
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
@@ -75,6 +76,7 @@ function Panel() {
     try {
       await call('review', { id, decision, reason });
       await load();
+      requestAnimationFrame(()=>resultsRef.current?.focus());
     } catch (e) {
       alert(String(e));
     }
@@ -93,12 +95,12 @@ function Panel() {
   }
 
   if (status === 'loading') {
-    return <div className='admin'>Cargando…</div>;
+    return <main className='admin' id='main-content' tabIndex={-1} role='status'>Cargando…</main>;
   }
 
   if (!session) {
     return (
-      <div className='login'>
+      <main className='login' id='main-content' tabIndex={-1}>
         <h1>🔐 Administración ASVO</h1>
         <p>Acceso exclusivo para cuentas de Google autorizadas.</p>
         <button className='cta' onClick={() => signIn('google')}>
@@ -107,7 +109,7 @@ function Panel() {
         <p>
           <a href='/'>← Volver al formulario</a>
         </p>
-      </div>
+      </main>
     );
   }
 
@@ -118,7 +120,7 @@ function Panel() {
   const approved = rows.filter((r) => r.status === 'APPROVED').length;
 
   return (
-    <div className='admin'>
+    <main className='admin' id='main-content' tabIndex={-1}>
       <div className='admin-head'>
         <div>
           <h1>Panel de pólizas ASVO</h1>
@@ -132,7 +134,7 @@ function Panel() {
         </div>
       </div>
 
-      {error && <p className='error'>{error}</p>}
+      {error && <p className='error' role='alert'>{error}</p>}
 
       <p className='admin-summary-note'>Resumen general · todas las solicitudes</p>
       <div className='stats'>
@@ -151,7 +153,7 @@ function Panel() {
 
       <div className='panel'>
         <div className='admin-head'>
-          <h2>Solicitudes de renovación</h2>
+          <h2 id="requests-title">Solicitudes de renovación</h2>
           <button
             onClick={() => {
               const data = [
@@ -186,17 +188,17 @@ function Panel() {
           <label>Póliza<select value={filters.policy} onChange={event=>setFilters(previous=>({...previous,policy:event.target.value}))}><option value="">Todas las pólizas</option>{policies.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <label>Método de pago<select value={filters.method} onChange={event=>setFilters(previous=>({...previous,method:event.target.value}))}><option value="">Todos los métodos</option>{methods.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         </div>
-        <div className="filter-results"><p role="status" aria-live="polite">Mostrando <strong>{visible.length}</strong> de {rows.length} solicitudes</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
+        <div className="filter-results"><p ref={resultsRef} tabIndex={-1} role="status" aria-live="polite">Mostrando <strong>{visible.length}</strong> de {rows.length} solicitudes</p><button type="button" onClick={()=>setFilters({...emptyAdminFilters})} disabled={!hasFilters}>Limpiar filtros</button></div>
 
-        <div className='scroll'>
-          <table>
+        <div className='scroll' role='region' aria-labelledby='requests-title' tabIndex={0}>
+          <table><caption className="sr-only">Solicitudes de renovación que coinciden con los filtros seleccionados</caption>
             <thead>
               <tr>
-                <th>Persona voluntaria</th>
-                <th>Pago</th>
-                <th>Estado</th>
-                <th>Comprobante</th>
-                <th>Acciones</th>
+                <th scope="col">Persona voluntaria</th>
+                <th scope="col">Pago</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Comprobante</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -240,10 +242,10 @@ function Panel() {
                     <button className="send-status-link" onClick={async()=>{if(!confirm('¿Enviar un nuevo enlace de consulta al correo de esta solicitud? El enlace anterior quedará invalidado.'))return;try{await call('sendStatusLink',{id:r.id});await load();}catch(error){alert(String(error));}}}>Enviar enlace de consulta</button>
                     {r.status === 'PENDING' ? (
                       <>
-                        <button onClick={() => review(r.id, 'APPROVED')}>
+                        <button aria-label={'Aprobar pago de '+r.name} onClick={() => review(r.id, 'APPROVED')}>
                           ✓ Aprobar
                         </button>{' '}
-                        <button onClick={() => review(r.id, 'REJECTED')}>
+                        <button aria-label={'Rechazar comprobante de '+r.name} onClick={() => review(r.id, 'REJECTED')}>
                           ✕ Rechazar
                         </button>
                       </>
@@ -262,20 +264,20 @@ function Panel() {
         <div className='panel'>
           <h2>Administrar accesos</h2>
           <form className='admin-add' onSubmit={add}>
-            <input
+            <label>Correo de la cuenta Google<input
               type='email'
               placeholder='Cuenta Google'
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               required
             />
-            <select
+            </label><label>Rol de acceso<select
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
             >
               <option value='REVIEWER'>Revisor</option>
               <option value='ADMIN'>Administrador</option>
-            </select>
+            </select></label>
             <button>Agregar</button>
           </form>
           {admins.map((a) => (
@@ -297,7 +299,7 @@ function Panel() {
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }
 
